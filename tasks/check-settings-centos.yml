@@ -1,0 +1,13 @@
+---
+- name: "Check for innodb_log_file_size setting (RedHat/CentOS)"
+  shell:
+    cmd: grep -E ^innodb_log_file_size /etc/my.cnf | awk -F= '{ print $2}' | sed 's/\s//g'
+    removes: "/etc/my.cnf"
+  register: configured_innodb_log_file_size
+
+- name: "Abort when innodb_log_file_size changes"
+  fail:
+    msg: "The existing MySQL servers has innodb_log_file_size={{ configured_innodb_log_file_size.stdout }}, but your are trying to set mysql_innodb_log_file_size={{ mysql_innodb_log_file_size }}. Please, change this value in server or the variable value in ansible. See: https://dev.mysql.com/doc/refman/5.6/en/innodb-redo-log.html"
+  when:
+    - not configured_innodb_log_file_size.stdout | regex_search('^skipped')
+    - configured_innodb_log_file_size.stdout != mysql_innodb_log_file_size
